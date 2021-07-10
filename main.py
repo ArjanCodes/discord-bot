@@ -4,7 +4,7 @@ from discord.ext import commands
 import config as env
 import src.cogs
 
-PREFIX = "/"
+PREFIX = "!"
 CASE_INSENSITIVE = True
 
 INTENTS = discord.Intents.default()
