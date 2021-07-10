@@ -33,4 +33,4 @@ python main.py
 
 ### Contributing
 We will gladly accept contributions, but before you start working on something please read 
-[CONTRIBUTING.md](https://github.com/ArjanCodes/discord-bot/blob/main/docs/CONTRIBUTING.md) first.
+[CONTRIBUTING.md](docs/CONTRIBUTING.md) first.
