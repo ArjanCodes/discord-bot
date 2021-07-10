@@ -15,9 +15,13 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        _cogs = []
+        _cogs = [src.cogs.server_management.ServerManagement(self)]
         for cog in _cogs:
             self.add_cog(cog)
+
+    @property
+    async def the_guild(self):
+        return await self.fetch_guild(env.GUILD_ID)
 
     async def on_ready(self):
         print("Bot is online")
