@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 import config as env
-import src.cogs
+from src.cogs import *
 
 PREFIX = "/"
 CASE_INSENSITIVE = True
@@ -15,7 +15,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        _cogs = [src.cogs.server_management.ServerManagement(self)]
+        _cogs = [server_management.ServerManagement(self), utils.Utilities(self)]
         for cog in _cogs:
             self.add_cog(cog)
 
