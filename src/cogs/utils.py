@@ -1,9 +1,11 @@
 import discord
 from discord.ext import commands
 
+from ..single_guild_bot import SingleGuildBot as Bot
+
 
 class Utilities(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot):
         self.bot = bot
 
     @commands.command()

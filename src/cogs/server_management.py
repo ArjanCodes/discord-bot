@@ -167,3 +167,22 @@ class ServerManagement(commands.Cog):
             await ctx.channel.send(self.registry.count_type(_type))
         else:
             await ctx.channel.send(self.registry.count_type_by_user(user.id, _type))
+
+    @commands.command()
+    @commands.has_any_role(*PRIVILEGED_USERS)
+    async def info(self, ctx: commands.Context, registry_id: str) -> None:
+        record = self.registry.get_info(registry_id)
+
+        if record is None:
+            await ctx.channel.send("No such document was found")
+            return
+
+        embed_string = "\n".join(
+            [f"**{k}** : {v}" for k, v in record.items() if k != "_id"]
+        )
+        embed = discord.Embed(
+            title=f"Punishment id {registry_id}",
+            description=embed_string,
+            colour=discord.Color.red(),
+        )
+        await ctx.channel.send(embed=embed)

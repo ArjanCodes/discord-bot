@@ -1,5 +1,8 @@
+import json
+
 import discord
 
+from src.custom_help_command import CustomHelpCommand
 from src.single_guild_bot import SingleGuildBot
 import src.cogs as cogs
 
@@ -28,10 +31,14 @@ class Bot(SingleGuildBot):
                 self,
                 coll.ActivePunishments(self._db),
                 coll.PunishmentRegistry(self._db),
-            )
+            ),
+            cogs.Utilities(self),
         ]
-        for cog in _cogs:
-            self.add_cog(cog)
+        with open("./src/cogs/helps.json") as file:
+            data = json.load(file)
+            for cog in _cogs:
+                self.load_command_docs(cog, data.get(cog.qualified_name))
+                self.add_cog(cog)
 
     @property
     async def the_guild(self) -> discord.Guild:
@@ -49,7 +56,20 @@ class Bot(SingleGuildBot):
             activity=discord.Game(name="Being developed by the ArjanCodes community")
         )
 
+    @staticmethod
+    def load_command_docs(cog, data):
+        if data is None:
+            return
+        else:
+            for command in cog.walk_commands():
+                command.help = data.get(command.qualified_name)
 
-bot = Bot(command_prefix=PREFIX, case_insensitive=CASE_INSENSITIVE, intents=INTENTS)
+
+bot = Bot(
+    command_prefix=PREFIX,
+    case_insensitive=CASE_INSENSITIVE,
+    intents=INTENTS,
+    help_command=CustomHelpCommand(),
+)
 
 bot.run(env.TOKEN)

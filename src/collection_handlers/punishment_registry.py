@@ -26,3 +26,6 @@ class PunishmentRegistry(collection.Collection):
         return self.count_documents(
             {"user_id": user_id, "punishment_id": pun_type.value}
         )
+
+    def get_info(self, _id: str) -> dict:
+        return self.find_one({"_id": ObjectId(_id)})
