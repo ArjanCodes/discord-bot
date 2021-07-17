@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 python-dotenv = "*"
 discord = "*"
+pymongo = "*"
+dnspython = "*"
 
 [dev-packages]
 

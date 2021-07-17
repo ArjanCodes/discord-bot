@@ -1,216 +1,290 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Type
+
+if TYPE_CHECKING:
+    from main import Bot
+
+from abc import ABC, abstractmethod
+from enum import Enum, unique
+from dataclasses import dataclass, field
+
 import datetime
 import random
-from abc import ABC, abstractmethod
 
 import discord
 from discord.ext import commands
 from discord.utils import get
 
-from config import TEST_CHANNEL_ID, MUTED_ROLE_ID, GUILD_ID
-
+from config import MUTED_ROLE_ID
 
 DEFAULT_PUNISHMENT_UNIT = "minute"
 DEFAULT_PUNISHMENT_AMOUNT = 5
-UNITS = ["minute", "minutes", "hour", "hours", "day", "days"]
 
-punished_users = []
+UNITS = ["minute", "minutes", "min", "hour", "hours", "day", "days"]
+GENERIC_REASONS = [
+    "inappropriate behavior",
+    "breaking the community guidelines",
+    "breaking rules",
+]
 
-GENERIC_REASONS = ["bad behavior", "insulting other members", "profanity", "being rude"]
+
+@unique
+class PunishmentID(Enum):
+    WARN = "WARN"
+    MUTE = "MUTE"
+    KICK = "KICK"
+    BAN = "BAN"
+    PERMABAN = "PERMABAN"
 
 
-def get_random_reason():
+def get_random_reason() -> str:
     return random.choice(GENERIC_REASONS)
 
 
-class Punishment(commands.Converter, ABC):
-    to_punish: discord.Member
+def extract_amount_and_unit(argument) -> (int, str, str):
+    """A simple input parser to get needed data from a command string"""
+    argument = argument.split()
 
-    @abstractmethod
-    async def convert(self, ctx, argument):
-        raise NotImplementedError
-
-    @abstractmethod
-    async def punish(self, ctx: commands.Context):
-        raise NotImplementedError
-
-    @abstractmethod
-    def generic(self, to_punish: discord.Member):
-        raise NotImplementedError
-
-    @abstractmethod
-    def notify_punishment(self) -> str:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def action(self) -> str:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def reason(self) -> str:
-        raise NotImplementedError
-
-    @reason.setter
-    def reason(self, value):
-        self.reason = value
-
-
-class OneTimePunishment(Punishment, ABC):
-    reason = None
-
-    # leaving it here as it might be useful in the future
-    async def punish(self, ctx) -> None:
-        pass
-
-    @classmethod
-    def generic(cls, to_punish: discord.Member):
-        instance = cls()
-
-        instance.to_punish = to_punish
-
-        instance.reason = get_random_reason()
-
-        return instance
-
-    async def convert(self, ctx: commands.Context, argument):
-        self.reason = argument
-
-        self.to_punish = ctx.args[2]
-
-        return self
-
-    def notify_punishment(self) -> str:
-        return f"{self.to_punish.mention} was {self.action} for {self.reason}"
-
-
-class TimedPunishment(Punishment, ABC):
-    amount: int
-    unit: str
-    expires: datetime.datetime
-
-    reason = None
-
-    @classmethod
-    def generic(cls, to_punish: discord.Member):
-        instance = cls()
-
-        instance.to_punish = to_punish
-
-        instance.amount = DEFAULT_PUNISHMENT_AMOUNT
-        instance.unit = DEFAULT_PUNISHMENT_UNIT
-        instance.reason = get_random_reason()
-
-        instance.expires = instance.translate_to_datetime(
-            instance.amount, instance.unit
+    if argument[0].isnumeric() and argument[1] in UNITS:
+        command_amount, command_unit = int(argument[0]), argument[1]
+        command_reason = (
+            get_random_reason() if len(argument) == 2 else " ".join(argument[2:])
         )
 
-        return instance
-
-    async def convert(self, ctx, argument):
-        self.amount, self.unit, self.reason = self.extract_amount_and_unit(argument)
-
-        self.expires = self.translate_to_datetime(self.amount, self.unit)
-        self.to_punish = ctx.args[2]
-
-        return self
-
-    async def punish(self, ctx) -> None:
-        punished_users.append(self)
-
-    def notify_punishment(self) -> str:
-        return f"{self.to_punish.mention} was {self.action} for {self.amount} {self.unit} for {self.reason}"
-
-    async def unpunish(self, bot):
-        punished_users.remove(self)
-
-    def notify_unpunishment(self):
-        return f"{self.to_punish.mention} has been {self.action} for {self.amount} {self.unit}, welcome back!"
-
-    @staticmethod
-    def extract_amount_and_unit(argument):
-        argument = argument.split()
-
-        command_reason = " ".join(argument)
+    else:
         command_amount = DEFAULT_PUNISHMENT_AMOUNT
         command_unit = DEFAULT_PUNISHMENT_UNIT
+        command_reason = " ".join(argument)
 
-        if argument[0].isnumeric() and argument[1] in UNITS:
-            command_amount, command_unit = int(argument[0]), argument[1]
-            command_reason = " ".join(argument[2:])
-
-            if not command_reason:
-                command_reason = get_random_reason()
-
-        return command_amount, command_unit, command_reason
-
-    @staticmethod
-    def translate_to_datetime(amount, unit):
-        if unit in ["days", "day"]:
-            return datetime.datetime.now() + datetime.timedelta(days=amount)
-        elif unit in ["hours", "hour"]:
-            return datetime.datetime.now() + datetime.timedelta(hours=amount)
-        elif unit in ["minutes", "minute"]:
-            return datetime.datetime.now() + datetime.timedelta(minutes=amount)
-        else:
-            raise TypeError()
+    return command_amount, command_unit, command_reason
 
 
+def translate_to_datetime(amount: int, unit: str) -> datetime.datetime:
+    if unit in ["days", "day"]:
+        return datetime.datetime.now() + datetime.timedelta(days=amount)
+    elif unit in ["hours", "hour"]:
+        return datetime.datetime.now() + datetime.timedelta(hours=amount)
+    elif unit in ["minutes", "minute", "min"]:
+        return datetime.datetime.now() + datetime.timedelta(minutes=amount)
+    else:
+        raise TypeError()
+
+
+@dataclass(frozen=True)
+class Punishment(ABC):
+    to_punish: discord.Member
+    punished_by: discord.Member
+    punishment_id: PunishmentID
+
+    action: str
+    reason: str = get_random_reason()
+
+    @classmethod
+    @abstractmethod
+    async def convert(cls, ctx, argument) -> Punishment:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def punish(self, ctx: commands.Context) -> None:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def default(
+        cls, to_punish: discord.Member, punished_by: discord.Member
+    ) -> Punishment:
+        raise NotImplementedError
+
+    @abstractmethod
+    def encode_to_mongo(self) -> dict:
+        raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class OneTimePunishment(Punishment, ABC):
+    def encode_to_mongo(self) -> dict:
+        return {
+            "registry": {
+                "user_id": self.to_punish.id,
+                "punishment_id": self.punishment_id.value,
+                "reason": self.reason,
+                "punished_by": self.punished_by.id,
+            }
+        }
+
+    @classmethod
+    async def convert(cls, ctx: commands.Context, argument) -> OneTimePunishment:
+        to_punish = ctx.args[2]
+        return cls(
+            to_punish=to_punish,
+            reason=argument,
+            punishment_id=cls.punishment_id,
+            action=cls.action,
+            punished_by=ctx.author,
+        )
+
+    @classmethod
+    def default(
+        cls, to_punish: discord.Member, punished_by: discord.Member
+    ) -> OneTimePunishment:
+        return cls(
+            to_punish=to_punish,
+            punishment_id=cls.punishment_id,
+            action=cls.action,
+            punished_by=punished_by,
+        )
+
+
+@dataclass(frozen=True)
+class TimedPunishment(Punishment, ABC):
+    amount: int = DEFAULT_PUNISHMENT_AMOUNT
+    unit: str = DEFAULT_PUNISHMENT_UNIT
+
+    created_at: datetime.datetime = datetime.datetime.now()
+    expires: datetime.datetime = field(init=False)
+
+    def __post_init__(self):
+        object.__setattr__(
+            self, "expires", translate_to_datetime(self.amount, self.unit)
+        )
+
+    @classmethod
+    @abstractmethod
+    async def unpunish(cls, user_id: int, bot: Bot) -> None:
+        raise NotImplementedError
+
+    @classmethod
+    async def convert(cls, ctx: commands.Context, argument) -> TimedPunishment:
+        to_punish = ctx.args[2]
+
+        amount, unit, reason = extract_amount_and_unit(argument)
+        return cls(
+            to_punish=to_punish,
+            punishment_id=cls.punishment_id,
+            action=cls.action,
+            amount=amount,
+            unit=unit,
+            reason=reason,
+            punished_by=ctx.author,
+        )
+
+    @classmethod
+    def default(
+        cls, to_punish: discord.Member, punished_by: discord.Member
+    ) -> TimedPunishment:
+        return cls(
+            to_punish=to_punish,
+            punishment_id=cls.punishment_id,
+            action=cls.action,
+            punished_by=punished_by,
+        )
+
+    def encode_to_mongo(self) -> dict:
+        return {
+            "registry": {
+                "user_id": self.to_punish.id,
+                "punishment_id": self.punishment_id.value,
+                "reason": self.reason,
+                "punished_by": self.punished_by.id,
+                "duration": f"{self.amount} {self.unit}",
+                "expires_at": self.expires,
+            },
+            "active": {
+                "user_id": self.to_punish.id,
+                "punishment_id": self.punishment_id.value,
+                "expires_at": self.expires,
+            },
+        }
+
+
+class WarnPunishment(OneTimePunishment):
+    punishment_id = PunishmentID.WARN
+    action = "warned"
+
+    async def punish(self, ctx: commands.Context) -> None:
+        await ctx.send(
+            f"{self.to_punish.mention} you are being warned for breaking the community guidelines."
+        )
+
+
+@dataclass(frozen=True)
 class MutePunishment(TimedPunishment):
+    punishment_id = PunishmentID.MUTE
     action = "muted"
 
-    async def punish(self, ctx: commands.Context):
-        await super().punish(ctx)
-
+    async def punish(self, ctx: commands.Context) -> None:
         muted_role = await self.get_muted_role(ctx.guild)
 
         await self.to_punish.add_roles(muted_role)
 
-    async def unpunish(self, bot):
-        await super().unpunish(bot)
-        muted_role = await self.get_muted_role(await bot.the_guild)
+    @classmethod
+    async def unpunish(cls, user_id: int, bot: Bot) -> None:
+        try:
+            member = await (await bot.the_guild).fetch_member(user_id)
+        except discord.errors.NotFound:
+            await bot.admin_log(
+                f"Failed to lift punishment\n"
+                f"   Error : user <{user_id}> is no longer present in the server"
+            )
+        else:
+            muted_role = await cls.get_muted_role(await bot.the_guild)
+            await member.remove_roles(muted_role)
 
-        await self.to_punish.remove_roles(muted_role)
-
-        channel = await bot.fetch_channel(TEST_CHANNEL_ID)
-        await channel.send(self.notify_unpunishment())
+            await bot.admin_log(f"Unpunished user <{user_id}> ({member.display_name})")
 
     @staticmethod
-    async def get_muted_role(guild):
+    async def get_muted_role(guild: discord.Guild) -> discord.Role:
         roles = await guild.fetch_roles()
         return get(roles, id=MUTED_ROLE_ID)
 
 
-class BanPunishment(TimedPunishment):
-    action = "banned"
-
-    async def punish(self, ctx):
-        await super().punish(ctx)
-
-        await self.to_punish.ban()
-
-    async def unpunish(self, bot):
-        await super().unpunish(bot)
-
-        await self.to_punish.unban()
-
-        channel = await bot.fetch_channel(TEST_CHANNEL_ID)
-        await channel.send(self.notify_unpunishment())
-
-
+@dataclass(frozen=True)
 class KickPunishment(OneTimePunishment):
-    action = "kicked"
+    punishment_id: PunishmentID = PunishmentID.KICK
+    action: str = "kicked"
 
-    async def punish(self, ctx):
-        await super().punish(ctx)
-
+    async def punish(self, ctx: commands.Context) -> None:
         await self.to_punish.kick()
 
 
+@dataclass(frozen=True)
+class BanPunishment(TimedPunishment):
+    punishment_id = PunishmentID.BAN
+    action = "banned"
+
+    async def punish(self, ctx: commands.Context) -> None:
+        await self.to_punish.ban(reason=self.reason)
+
+    @classmethod
+    async def unpunish(cls, user_id: int, bot: Bot) -> None:
+        user = await bot.fetch_user(user_id)
+        await (await bot.the_guild).unban(user)
+
+        await bot.admin_log(f"Unpunished user <{user_id}> ({user.display_name})")
+
+
+@dataclass(frozen=True)
 class PermaBanPunishment(OneTimePunishment):
+    punishment_id = PunishmentID.PERMABAN
     action = "perma banned"
 
-    async def punish(self, ctx) -> None:
-        await super().punish(ctx)
+    async def punish(self, ctx: commands.Context) -> None:
+        await self.to_punish.ban(reason=self.reason)
 
-        await self.to_punish.ban()
+
+timed_punishment_from_id = {
+    "MUTE": MutePunishment,
+    "BAN": BanPunishment,
+}
+
+__all__ = [
+    "WarnPunishment",
+    "MutePunishment",
+    "KickPunishment",
+    "BanPunishment",
+    "PermaBanPunishment",
+    "GENERIC_REASONS",
+    "timed_punishment_from_id",
+    "Punishment",
+    "PunishmentID",
+]

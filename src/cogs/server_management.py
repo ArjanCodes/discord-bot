@@ -1,23 +1,20 @@
-import datetime
+from __future__ import annotations
 from typing import Optional
+
+from ..single_guild_bot import SingleGuildBot as Bot
 
 from discord import Member
 from discord.ext import commands, tasks
+import discord.errors
 
 import config
-from config import TEST_CHANNEL_ID
-from src.cogs.punishments import (
-    MutePunishment,
-    BanPunishment,
-    KickPunishment,
-    punished_users,
-    PermaBanPunishment,
-    GENERIC_REASONS,
-)
 
+from .punishments import *
 
-UNPUNISH_LOOP_DURATION_MINUTES = 5
+from src.collection_handlers import ActivePunishments, PunishmentRegistry
+from bson import ObjectId
 
+UNPUNISH_LOOP_DURATION_MINUTES = 1
 
 PRIVILEGED_USERS = [
     config.ADMINISTRATOR_ROLE_ID,
@@ -26,30 +23,71 @@ PRIVILEGED_USERS = [
 ]
 
 
-class ServerManagement(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+class PunishmentConverter(commands.Converter):
+    async def convert(self, ctx, argument) -> PunishmentID:
+        return PunishmentID[argument.upper()]
 
-        self.automatic_unpunish.start()
+
+class ServerManagement(commands.Cog):
+    def __init__(
+        self, bot: Bot, active: ActivePunishments, registry: PunishmentRegistry
+    ):
+        self.bot = bot
+        self.active = active
+        self.registry = registry
+
+        self.lift_punishments.start()
 
     @tasks.loop(minutes=UNPUNISH_LOOP_DURATION_MINUTES)
-    async def automatic_unpunish(self):
-        for punishment in punished_users:
-            if punishment.expires < datetime.datetime.now():
-                await punishment.unpunish(self.bot)
+    async def lift_punishments(self):
+        records = self.active.get_to_deactivate()
+
+        for record in records:
+            punishment_type = timed_punishment_from_id.get(record["punishment_id"])
+            await punishment_type.unpunish(record["user_id"], self.bot)
+
+        self.active.deactivate()
+
+    async def handle_punishment(self, punishment: Punishment) -> None:
+        data = punishment.encode_to_mongo()
+        _id = ObjectId()
+
+        to_registry = data.get("registry")
+        to_active = data.get("active")
+
+        if to_active is not None:
+            self.active.new_punishment(_id, to_active)
+
+        self.registry.new_punishment(_id, to_registry)
+
+        await self.bot.admin_log(
+            f"**Punished user** <{punishment.to_punish.id}> ({punishment.to_punish.display_name}) with {punishment.punishment_id.value}\n"
+            f"   **Punished by:** {punishment.punished_by.mention}\n"
+            f"   **Reason:** {punishment.reason}\n"
+            f"   **Punishment registry id:** {_id}"
+        )
+
+    @property
+    async def muted_role(self) -> discord.Role:
+        return (await self.bot.the_guild).get_role(config.MUTED_ROLE_ID)
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        if self.active.has_active_mute(member.id):
+            await member.add_roles(await self.muted_role)
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
-    async def kick(
-        self, ctx: commands.Context, user: Member, kick: Optional[KickPunishment]
+    async def warn(
+        self, ctx: commands.Context, user: Member, *, warn: Optional[WarnPunishment]
     ):
         await ctx.message.delete()
 
-        if not kick:
-            kick = KickPunishment.generic(user)
-        await kick.punish(ctx)
+        if not warn:
+            warn = WarnPunishment.default(user, ctx.author)
+        await self.handle_punishment(warn)
 
-        await ctx.channel.send(kick.notify_punishment())
+        await warn.punish(ctx)
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
@@ -59,17 +97,23 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not mute:
-            mute = MutePunishment.generic(user)
-        await mute.punish(ctx)
+            mute = MutePunishment.default(user, ctx.author)
+        await self.handle_punishment(mute)
 
-        await ctx.channel.send(mute.notify_punishment())
+        await mute.punish(ctx)
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
-    async def warn(self, ctx: commands.Context, user: Member):
+    async def kick(
+        self, ctx: commands.Context, user: Member, *, kick: Optional[KickPunishment]
+    ):
         await ctx.message.delete()
 
-        await ctx.send(f"{user.mention} you are being warned, change the way you act.")
+        if not kick:
+            kick = KickPunishment.default(user, ctx.author)
+        await self.handle_punishment(kick)
+
+        await kick.punish(ctx)
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
@@ -79,10 +123,10 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not ban:
-            ban = BanPunishment.generic(user)
-        await ban.punish(ctx)
+            ban = BanPunishment.default(user, ctx.author)
+        await self.handle_punishment(ban)
 
-        await ctx.channel.send(ban.notify_punishment())
+        await ban.punish(ctx)
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
@@ -92,44 +136,34 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not ban:
-            ban = PermaBanPunishment.generic(user)
+            ban = PermaBanPunishment.default(user, ctx.author)
+        await self.handle_punishment(ban)
+
         await ban.punish(ctx)
 
-        await ctx.channel.send(ban.notify_punishment())
+    @commands.command()
+    @commands.has_any_role(*PRIVILEGED_USERS)
+    async def active(
+        self, ctx: commands.Context, _type: Optional[PunishmentConverter]
+    ) -> None:
+        if _type is None:
+            await ctx.channel.send(self.active.count_total_amount())
+        else:
+            await ctx.channel.send(self.active.count_type(_type))
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
-    async def print_generic_reasons(self, ctx: commands.Context):
-        channel = await self.bot.fetch_channel(TEST_CHANNEL_ID)
-        await channel.send(GENERIC_REASONS)
-
-    @commands.command()
-    @commands.has_any_role(*PRIVILEGED_USERS)
-    async def add_generic_reason(self, ctx: commands.Context, *, reason: str):
-        GENERIC_REASONS.append(reason)
-
-    @commands.command()
-    @commands.has_any_role(*PRIVILEGED_USERS)
-    async def remove_generic_reason(self, ctx: commands.Context, index: int):
-        GENERIC_REASONS.pop(index)
-
-    @commands.command()
-    @commands.has_any_role(*PRIVILEGED_USERS)
-    async def print_punishments(self, ctx: commands.Context):
-        data = "".join(
-            [
-                f"ID: {index} **{p.to_punish}** + {p.reason} -> {p.expires}\n"
-                for index, p in enumerate(punished_users)
-            ]
-        )
-        channel = await self.bot.fetch_channel(TEST_CHANNEL_ID)
-
-        data = data if data else "No punishments in this server :)"
-        await channel.send(data)
-
-    @commands.command(aliases=["unpunish"])
-    @commands.has_any_role(*PRIVILEGED_USERS)
-    async def manual_unpunish(self, ctx: commands.Context, user: Member):
-        for punishment in punished_users:
-            if punishment.to_punish.id == user.id:
-                await punishment.unpunish(self.bot)
+    async def registry(
+        self,
+        ctx: commands.Context,
+        user: Optional[discord.Member],
+        _type: Optional[PunishmentConverter],
+    ) -> None:
+        if _type is None and user is None:
+            await ctx.channel.send(self.registry.count_total_amount())
+        elif _type is None:
+            await ctx.channel.send(self.registry.count_by_user(user.id))
+        elif user is None:
+            await ctx.channel.send(self.registry.count_type(_type))
+        else:
+            await ctx.channel.send(self.registry.count_type_by_user(user.id, _type))
