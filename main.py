@@ -2,7 +2,7 @@ import json
 
 import discord
 
-from src.custom_help_command import CustomHelpCommand
+from src.custom_help_command import CustomHelpCommand, CommandWithDocs
 from src.single_guild_bot import SingleGuildBot
 import src.cogs as cogs
 
@@ -62,7 +62,8 @@ class Bot(SingleGuildBot):
             return
         else:
             for command in cog.walk_commands():
-                command.help = data.get(command.qualified_name)
+                if isinstance(command, CommandWithDocs):
+                    command.docs = data.get(command.qualified_name)
 
 
 bot = Bot(

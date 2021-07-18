@@ -5,6 +5,7 @@ from ..single_guild_bot import SingleGuildBot as Bot
 
 from discord import Member
 from discord.ext import commands, tasks
+from ..custom_help_command import CommandWithDocs
 import discord.errors
 
 import config
@@ -76,7 +77,7 @@ class ServerManagement(commands.Cog):
         if self.active.has_active_mute(member.id):
             await member.add_roles(await self.muted_role)
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def warn(
         self, ctx: commands.Context, user: Member, *, warn: Optional[WarnPunishment]
@@ -89,7 +90,7 @@ class ServerManagement(commands.Cog):
 
         await warn.punish(ctx)
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def mute(
         self, ctx: commands.Context, user: Member, *, mute: Optional[MutePunishment]
@@ -102,7 +103,7 @@ class ServerManagement(commands.Cog):
 
         await mute.punish(ctx)
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def kick(
         self, ctx: commands.Context, user: Member, *, kick: Optional[KickPunishment]
@@ -115,7 +116,7 @@ class ServerManagement(commands.Cog):
 
         await kick.punish(ctx)
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def ban(
         self, ctx: commands.Context, user: Member, *, ban: Optional[BanPunishment]
@@ -128,7 +129,7 @@ class ServerManagement(commands.Cog):
 
         await ban.punish(ctx)
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def permaban(
         self, ctx: commands.Context, user: Member, *, ban: Optional[PermaBanPunishment]
@@ -141,7 +142,7 @@ class ServerManagement(commands.Cog):
 
         await ban.punish(ctx)
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def active(
         self, ctx: commands.Context, _type: Optional[PunishmentConverter]
@@ -151,7 +152,7 @@ class ServerManagement(commands.Cog):
         else:
             await ctx.channel.send(self.active.count_type(_type))
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def registry(
         self,
@@ -168,7 +169,7 @@ class ServerManagement(commands.Cog):
         else:
             await ctx.channel.send(self.registry.count_type_by_user(user.id, _type))
 
-    @commands.command()
+    @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def info(self, ctx: commands.Context, registry_id: str) -> None:
         record = self.registry.get_info(registry_id)
