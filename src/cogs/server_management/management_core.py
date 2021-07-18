@@ -62,7 +62,8 @@ class ServerManagement(commands.Cog):
         self.registry.new_punishment(_id, to_registry)
 
         await self.bot.admin_log(
-            f"**Punished user** <{punishment.to_punish.id}> ({punishment.to_punish.display_name}) with {punishment.punishment_id.value}\n"
+            f"**Punished user** <{punishment.to_punish.id}> ({punishment.to_punish.display_name}) with"
+            f" {punishment.punishment_id.value}\n"
             f"   **Punished by:** {punishment.punished_by.mention}\n"
             f"   **Reason:** {punishment.reason}\n"
             f"   **Punishment registry id:** {_id}"
@@ -85,7 +86,7 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not warn:
-            warn = WarnPunishment.default(user, ctx.author)
+            warn = WarnPunishment(user, ctx.author)
         await self.handle_punishment(warn)
 
         await warn.punish(ctx)
@@ -98,7 +99,7 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not mute:
-            mute = MutePunishment.default(user, ctx.author)
+            mute = MutePunishment(user, ctx.author)
         await self.handle_punishment(mute)
 
         await mute.punish(ctx)
@@ -111,7 +112,7 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not kick:
-            kick = KickPunishment.default(user, ctx.author)
+            kick = KickPunishment(user, ctx.author)
         await self.handle_punishment(kick)
 
         await kick.punish(ctx)
@@ -124,7 +125,7 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not ban:
-            ban = BanPunishment.default(user, ctx.author)
+            ban = BanPunishment(user, ctx.author)
         await self.handle_punishment(ban)
 
         await ban.punish(ctx)
@@ -137,7 +138,7 @@ class ServerManagement(commands.Cog):
         await ctx.message.delete()
 
         if not ban:
-            ban = PermaBanPunishment.default(user, ctx.author)
+            ban = PermaBanPunishment(user, ctx.author)
         await self.handle_punishment(ban)
 
         await ban.punish(ctx)
