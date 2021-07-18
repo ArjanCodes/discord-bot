@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..single_guild_bot import SingleGuildBot as Bot
+from src.single_guild_bot import SingleGuildBot as Bot
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique

@@ -3,8 +3,7 @@ from bson import ObjectId
 
 from datetime import datetime
 
-from src.cogs.punishments import PunishmentID
-
+from src.cogs import PunishmentID
 
 class ActivePunishments(collection.Collection):
     name: str = "activePunishments"

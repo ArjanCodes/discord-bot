@@ -1,7 +1,7 @@
 from pymongo import collection
 from bson import ObjectId
 
-from src.cogs.punishments import PunishmentID
+from src.cogs import PunishmentID
 
 
 class PunishmentRegistry(collection.Collection):

@@ -33,8 +33,9 @@ class Bot(SingleGuildBot):
                 coll.PunishmentRegistry(self._db),
             ),
             cogs.Utilities(self),
+            cogs.ProfanityFilter(self),
         ]
-        with open("./src/cogs/helps.json") as file:
+        with open("src/cogs/command_docs.json") as file:
             data = json.load(file)
             for cog in _cogs:
                 self.load_command_docs(cog, data.get(cog.qualified_name))

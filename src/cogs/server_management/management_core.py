@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import Optional
 
-from ..single_guild_bot import SingleGuildBot as Bot
+from src.single_guild_bot import SingleGuildBot as Bot
 
 from discord import Member
 from discord.ext import commands, tasks
-from ..custom_help_command import CommandWithDocs
+from src.custom_help_command import CommandWithDocs
 import discord.errors
 
 import config
