@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Type
 
-if TYPE_CHECKING:
-    from main import Bot
+from ..single_guild_bot import SingleGuildBot as Bot
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique
