@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Optional
 
+import bson.errors
+
 from src.single_guild_bot import SingleGuildBot as Bot
 
 from discord import Member
@@ -14,6 +16,7 @@ from .punishments import *
 
 from src.collection_handlers import ActivePunishments, PunishmentRegistry
 from bson import ObjectId
+
 
 UNPUNISH_LOOP_DURATION_MINUTES = 1
 
@@ -149,9 +152,11 @@ class ServerManagement(commands.Cog):
         self, ctx: commands.Context, _type: Optional[PunishmentConverter]
     ) -> None:
         if _type is None:
-            await ctx.channel.send(self.active.count_total_amount())
+            response = f"```Total amount of records in ActivePunishments is {self.active.count_total_amount()}```"
         else:
-            await ctx.channel.send(self.active.count_type(_type))
+            response = f"```Total amount of records in ActivePunishments is {self.active.count_type(_type)}```"
+
+        await ctx.channel.send(response)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
@@ -161,30 +166,46 @@ class ServerManagement(commands.Cog):
         user: Optional[discord.Member],
         _type: Optional[PunishmentConverter],
     ) -> None:
+        response: str
         if _type is None and user is None:
-            await ctx.channel.send(self.registry.count_total_amount())
+            response = f"```Total amount of records in PunishmentsRegistry is {self.registry.count_total_amount()}```"
         elif _type is None:
-            await ctx.channel.send(self.registry.count_by_user(user.id))
+            response = (
+                f"```Total amount of records in PunishmentsRegistry"
+                f" for user {user.display_name} is {self.registry.count_by_user(user.id)}```"
+            )
         elif user is None:
-            await ctx.channel.send(self.registry.count_type(_type))
+            response = (
+                f"```Total amount of records in PunishmentRegistry of type {_type.value}"
+                f" is {self.registry.count_type(_type)}```"
+            )
         else:
-            await ctx.channel.send(self.registry.count_type_by_user(user.id, _type))
+            response = (
+                f"```Total amount of records in PunishmentRegistry for user {user.display_name} of type {_type.value}"
+                f" is {self.registry.count_type_by_user(user.id, _type)}```"
+            )
+
+        await ctx.channel.send(response)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def info(self, ctx: commands.Context, registry_id: str) -> None:
-        record = self.registry.get_info(registry_id)
+        try:
+            record = self.registry.get_info(registry_id)
+        except bson.errors.InvalidId as e:
+            await ctx.channel.send(f"```dts\n# {str(e)}\n```")
+        else:
+            if record is None:
+                await ctx.channel.send(f"```dts\n# This document\n```")
 
-        if record is None:
-            await ctx.channel.send("No such document was found")
-            return
+                return
 
-        embed_string = "\n".join(
-            [f"**{k}** : {v}" for k, v in record.items() if k != "_id"]
-        )
-        embed = discord.Embed(
-            title=f"Punishment id {registry_id}",
-            description=embed_string,
-            colour=discord.Color.red(),
-        )
-        await ctx.channel.send(embed=embed)
+            embed_string = "\n".join(
+                [f"**{k}** : {v}" for k, v in record.items() if k != "_id"]
+            )
+            embed = discord.Embed(
+                title=f"Punishment id {registry_id}",
+                description=embed_string,
+                colour=discord.Color.red(),
+            )
+            await ctx.channel.send(embed=embed)
