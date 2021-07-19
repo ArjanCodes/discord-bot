@@ -12,6 +12,9 @@ CONFIRM = "✅"
 CANCEL = "❌"
 
 
+TO_REMOVE = ["/", "_", "*", "'", '"', "`"]
+
+
 class Cancelled(Exception):
     pass
 
@@ -52,16 +55,25 @@ class ProfanityFilter(commands.Cog):
 
         self.reload_filter_data()
 
-    def has_profanity(self, message: str) -> bool:
-        in_lower = message.lower()
-        return bool(self.filter.intersection(set(in_lower.split())))
+    @staticmethod
+    def prepare_message(msg: str) -> set:
+        message = msg.lower()
+        for char in TO_REMOVE:
+            message = message.replace(char, "")
+
+        return set(message.split())
+
+    def contains_profanity(self, message: str) -> bool:
+        to_compare = self.prepare_message(message)
+
+        return bool(self.filter.intersection(to_compare))
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
+    async def on_message(self, message: discord.Message) -> None:
         if message.content.startswith(self.bot.command_prefix):
             return
 
-        if self.has_profanity(message.content):
+        if self.contains_profanity(message.content):
             await message.channel.send(
                 f"{message.author.mention} Please avoid using profanity"
             )
