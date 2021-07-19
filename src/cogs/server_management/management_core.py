@@ -1,21 +1,19 @@
 from __future__ import annotations
 from typing import Optional
 
-import bson.errors
-
 from src.single_guild_bot import SingleGuildBot as Bot
 
 from discord import Member
 from discord.ext import commands, tasks
-from src.custom_help_command import CommandWithDocs
 import discord.errors
+from src.custom_help_command import CommandWithDocs
 
 import config
 
 from .punishments import *
 
 from src.collection_handlers import ActivePunishments, PunishmentRegistry
-from bson import ObjectId
+import bson
 
 
 UNPUNISH_LOOP_DURATION_MINUTES = 1
@@ -44,25 +42,25 @@ class ServerManagement(commands.Cog):
 
     @tasks.loop(minutes=UNPUNISH_LOOP_DURATION_MINUTES)
     async def lift_punishments(self):
-        records = self.active.get_to_deactivate()
+        records = await self.active.get_to_deactivate()
 
-        for record in records:
+        async for record in records:
             punishment_type = timed_punishment_from_id.get(record["punishment_id"])
             await punishment_type.unpunish(record["user_id"], self.bot)
 
-        self.active.deactivate()
+        await self.active.deactivate()
 
     async def handle_punishment(self, punishment: Punishment) -> None:
         data = punishment.encode_to_mongo()
-        _id = ObjectId()
+        _id = bson.ObjectId()
 
         to_registry = data.get("registry")
         to_active = data.get("active")
 
         if to_active is not None:
-            self.active.new_punishment(_id, to_active)
+            await self.active.new_punishment(_id, to_active)
 
-        self.registry.new_punishment(_id, to_registry)
+        await self.registry.new_punishment(_id, to_registry)
 
         await self.bot.admin_log(
             f"**Punished user** <{punishment.to_punish.id}> ({punishment.to_punish.display_name}) with"
@@ -78,7 +76,7 @@ class ServerManagement(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        if self.active.has_active_mute(member.id):
+        if await self.active.has_active_mute(member.id):
             await member.add_roles(await self.muted_role)
 
     @commands.command(cls=CommandWithDocs)
@@ -152,9 +150,9 @@ class ServerManagement(commands.Cog):
         self, ctx: commands.Context, _type: Optional[PunishmentConverter]
     ) -> None:
         if _type is None:
-            response = f"```Total amount of records in ActivePunishments is {self.active.count_total_amount()}```"
+            response = f"```Total amount of records in ActivePunishments is {await self.active.count_total_amount()}```"
         else:
-            response = f"```Total amount of records in ActivePunishments is {self.active.count_type(_type)}```"
+            response = f"```Total amount of records in ActivePunishments is {await self.active.count_type(_type)}```"
 
         await ctx.channel.send(response)
 
@@ -168,21 +166,24 @@ class ServerManagement(commands.Cog):
     ) -> None:
         response: str
         if _type is None and user is None:
-            response = f"```Total amount of records in PunishmentsRegistry is {self.registry.count_total_amount()}```"
+            response = (
+                f"```Total amount of records in PunishmentsRegistry"
+                f" is {await self.registry.count_total_amount()}```"
+            )
         elif _type is None:
             response = (
                 f"```Total amount of records in PunishmentsRegistry"
-                f" for user {user.display_name} is {self.registry.count_by_user(user.id)}```"
+                f" for user {user.display_name} is {await self.registry.count_by_user(user.id)}```"
             )
         elif user is None:
             response = (
                 f"```Total amount of records in PunishmentRegistry of type {_type.value}"
-                f" is {self.registry.count_type(_type)}```"
+                f" is {await self.registry.count_type(_type)}```"
             )
         else:
             response = (
                 f"```Total amount of records in PunishmentRegistry for user {user.display_name} of type {_type.value}"
-                f" is {self.registry.count_type_by_user(user.id, _type)}```"
+                f" is {await self.registry.count_type_by_user(user.id, _type)}```"
             )
 
         await ctx.channel.send(response)
@@ -191,7 +192,7 @@ class ServerManagement(commands.Cog):
     @commands.has_any_role(*PRIVILEGED_USERS)
     async def info(self, ctx: commands.Context, registry_id: str) -> None:
         try:
-            record = self.registry.get_info(registry_id)
+            record = await self.registry.get_info(registry_id)
         except bson.errors.InvalidId as e:
             await ctx.channel.send(f"```dts\n# {str(e)}\n```")
         else:

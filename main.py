@@ -1,15 +1,16 @@
-import json
-
 import discord
+
+import config as env
 
 from src.custom_help_command import CustomHelpCommand, CommandWithDocs
 from src.single_guild_bot import SingleGuildBot
 import src.cogs as cogs
 
-from pymongo import MongoClient
+import motor.motor_asyncio as motor
 import src.collection_handlers as coll
 
-import config as env
+import json
+
 
 PREFIX = "/"
 CASE_INSENSITIVE = True
@@ -23,8 +24,9 @@ class Bot(SingleGuildBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        _client = MongoClient(env.DB_CONNECTION_STRING)
-        self._db = _client["bot"]
+        _client = motor.AsyncIOMotorClient(env.DB_CONNECTION_STRING)
+
+        self._db = motor.AsyncIOMotorDatabase(_client, "bot")
 
         _cogs = [
             cogs.ServerManagement(

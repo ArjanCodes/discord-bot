@@ -8,6 +8,7 @@ python-dotenv = "*"
 discord = "*"
 pymongo = "*"
 dnspython = "*"
+motor = "*"
 
 [dev-packages]
 
