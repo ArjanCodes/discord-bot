@@ -18,6 +18,7 @@ class Cancelled(Exception):
 
 class MessageToSet(commands.Converter):
     async def convert(self, ctx: commands.Context, argument: str) -> set:
+        argument = argument.lower()
         quoted = self.extract_quoted_words(argument)
 
         for word in quoted:
@@ -51,14 +52,20 @@ class ProfanityFilter(commands.Cog):
 
         self.reload_filter_data()
 
+    def has_profanity(self, message: str) -> bool:
+        in_lower = message.lower()
+        return bool(self.filter.intersection(set(in_lower.split())))
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not message.content.startswith("/add"):
-            if self.filter.intersection(set(message.content.split())):
-                await message.channel.send(
-                    f"{message.author.mention} Please avoid using profanity"
-                )
-                await message.delete()
+        if message.content.startswith(self.bot.command_prefix):
+            return
+
+        if self.has_profanity(message.content):
+            await message.channel.send(
+                f"{message.author.mention} Please avoid using profanity"
+            )
+            await message.delete()
 
     @commands.command()
     @commands.has_any_role(*PRIVILEGED_USERS)
