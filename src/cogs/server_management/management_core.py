@@ -76,10 +76,10 @@ class ServerManagement(commands.Cog):
     async def muted_role(self) -> discord.Role:
         return (await self.bot.the_guild).get_role(config.MUTED_ROLE_ID)
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member: discord.Member):
-        if self.active.has_active_mute(member.id):
-            await member.add_roles(await self.muted_role)
+   # @commands.Cog.listener()
+   # async def on_member_join(self, member: discord.Member):
+     #   if self.active.has_active_mute(member.id):
+        #    await member.add_roles(await self.muted_role)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*PRIVILEGED_USERS)
