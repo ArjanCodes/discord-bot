@@ -47,11 +47,13 @@ class Bot(SingleGuildBot):
     async def the_guild(self) -> discord.Guild:
         return await self.fetch_guild(env.GUILD_ID)
 
-    async def admin_log(self, payload: str):
+    async def admin_log(
+        self, message: str = None, embed: discord.Embed = None
+    ) -> discord.Message:
         channel: discord.TextChannel = await self.fetch_channel(
             env.ADMIN_LOG_CHANNEL_ID
         )
-        await channel.send(payload)
+        return await channel.send(content=message, embed=embed)
 
     async def on_ready(self):
         print("Bot is online")

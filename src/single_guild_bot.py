@@ -11,5 +11,5 @@ class SingleGuildBot(ABC, Bot):
         raise NotImplementedError
 
     @abstractmethod
-    async def admin_log(self, payload: str) -> None:
+    async def admin_log(self, message: str = None, embed: discord.Embed = None) -> discord.Message:
         raise NotImplementedError
