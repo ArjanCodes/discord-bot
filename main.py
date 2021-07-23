@@ -77,5 +77,5 @@ bot = Bot(
     intents=INTENTS,
     help_command=CustomHelpCommand(),
 )
-
+print("test")
 bot.run(env.TOKEN)
