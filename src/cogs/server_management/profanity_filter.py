@@ -2,8 +2,9 @@ import string
 from typing import Dict
 
 import discord
-from discord.ext import commands, menus
+from discord.ext import commands
 from discord.ext.commands import Context
+from src import menus
 
 from src.single_guild_bot import SingleGuildBot as Bot
 from .management_core import PRIVILEGED_USERS
@@ -255,7 +256,7 @@ class ProfanityFilter(commands.Cog):
             message=message,
             prefix=self.bot.command_prefix,
             author=message.author,
-            channel=channel
+            channel=channel,
         )
         should_report = await self.prompt.notify_user(new_ctx, triggered_words, channel)
 
