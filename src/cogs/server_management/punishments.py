@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 import datetime
 import random
-from typing import Tuple
+from typing import Tuple, List
 
 import discord
 from discord.ext import commands
@@ -34,6 +34,14 @@ class PunishmentID(Enum):
     KICK = "KICK"
     BAN = "BAN"
     PERMABAN = "PERMABAN"
+
+    @classmethod
+    async def convert(cls, _: commands.Context, punishment_type: str):
+        return PunishmentID[punishment_type.upper()]
+
+    @staticmethod
+    def timed_punishments() -> List[PunishmentID]:
+        return [PunishmentID.MUTE, PunishmentID.BAN]
 
 
 def get_random_reason() -> str:

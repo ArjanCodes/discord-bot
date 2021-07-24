@@ -2,15 +2,17 @@ from __future__ import annotations
 from typing import Optional
 
 from src.single_guild_bot import SingleGuildBot as Bot
+from src.custom_help_command import CommandWithDocs
 
 from discord import Member
 from discord.ext import commands, tasks
+from discord.ext.commands import Context
 import discord.errors
-from src.custom_help_command import CommandWithDocs
 
 from src.cogs.access_levels import *
 
 from .punishments import *
+from .punishments import WarnPunishment
 
 from src.collection_handlers import ActivePunishments, PunishmentRegistry
 import bson
@@ -19,9 +21,36 @@ import bson
 UNPUNISH_LOOP_DURATION_MINUTES = 1
 
 
-class PunishmentConverter(commands.Converter):
-    async def convert(self, ctx, argument) -> PunishmentID:
-        return PunishmentID[argument.upper()]
+class View:
+    def active(self, amounts: dict) -> discord.Embed:
+        return discord.Embed.from_dict(
+            {"title": "Amount of active punishments"} | self._fields_from_types(amounts)
+        )
+
+    def registry(self, amounts: dict) -> discord.Embed:
+        return discord.Embed.from_dict(
+            {"title": "Amount of punishments"} | self._fields_from_types(amounts)
+        )
+
+    def registry_per_member(self, amounts: dict, member: Member) -> discord.Embed:
+        embed = discord.Embed.from_dict(
+            {"title": f"Amount of punishments for user {member.display_name}"}
+            | self._fields_from_types(amounts)
+        )
+        embed.set_thumbnail(url=member.avatar_url)
+        return embed
+
+    @staticmethod
+    def _fields_from_types(amounts: dict) -> dict:
+        fields = [
+            {"name": _type, "value": amount, "inline": True}
+            for _type, amount in amounts.items()
+        ]
+
+        return {
+            "fields": fields,
+            "color": discord.Color.red().value,
+        }
 
 
 class ServerManagement(commands.Cog):
@@ -29,8 +58,10 @@ class ServerManagement(commands.Cog):
         self, bot: Bot, active: ActivePunishments, registry: PunishmentRegistry
     ):
         self.bot = bot
-        self.active = active
+
+        self.database_info = View()
         self.registry = registry
+        self.active = active
 
         self.lift_punishments.start()
 
@@ -44,7 +75,7 @@ class ServerManagement(commands.Cog):
 
         await self.active.deactivate()
 
-    async def handle_punishment(self, punishment: Punishment) -> None:
+    async def record_punishment(self, punishment: Punishment) -> None:
         data = punishment.encode_to_mongo()
         _id = bson.ObjectId()
 
@@ -75,132 +106,112 @@ class ServerManagement(commands.Cog):
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def warn(
-        self, ctx: commands.Context, user: Member, *, warn: Optional[WarnPunishment]
-    ):
+    async def warn(self, ctx: Context, user: Member, *, warn: Optional[WarnPunishment]):
         await ctx.message.delete()
 
         if not warn:
             warn = WarnPunishment(user, ctx.author)
-        await self.handle_punishment(warn)
+        await self.record_punishment(warn)
 
         await warn.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def mute(
-        self, ctx: commands.Context, user: Member, *, mute: Optional[MutePunishment]
-    ):
+    async def mute(self, ctx: Context, user: Member, *, mute: Optional[MutePunishment]):
         await ctx.message.delete()
 
         if not mute:
             mute = MutePunishment(user, ctx.author)
-        await self.handle_punishment(mute)
+        await self.record_punishment(mute)
 
         await mute.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def kick(
-        self, ctx: commands.Context, user: Member, *, kick: Optional[KickPunishment]
-    ):
+    async def kick(self, ctx: Context, user: Member, *, kick: Optional[KickPunishment]):
         await ctx.message.delete()
 
         if not kick:
             kick = KickPunishment(user, ctx.author)
-        await self.handle_punishment(kick)
+        await self.record_punishment(kick)
 
         await kick.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def ban(
-        self, ctx: commands.Context, user: Member, *, ban: Optional[BanPunishment]
-    ):
+    async def ban(self, ctx: Context, user: Member, *, ban: Optional[BanPunishment]):
         await ctx.message.delete()
 
         if not ban:
             ban = BanPunishment(user, ctx.author)
-        await self.handle_punishment(ban)
+        await self.record_punishment(ban)
 
         await ban.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
     @commands.has_any_role(*ACCESS_LEVEL_2)
     async def permaban(
-        self, ctx: commands.Context, user: Member, *, ban: Optional[PermaBanPunishment]
+        self, ctx: Context, user: Member, *, ban: Optional[PermaBanPunishment]
     ):
         await ctx.message.delete()
 
         if not ban:
             ban = PermaBanPunishment(user, ctx.author)
-        await self.handle_punishment(ban)
+        await self.record_punishment(ban)
 
         await ban.punish(ctx)
 
-    @commands.command(cls=CommandWithDocs)
+    @commands.group(aliases=("pun", "p", "punish"))
     @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def active(
-        self, ctx: commands.Context, _type: Optional[PunishmentConverter]
-    ) -> None:
-        if _type is None:
-            response = f"```Total amount of records in ActivePunishments is {await self.active.count_total_amount()}```"
-        else:
-            response = f"```Total amount of records in ActivePunishments is {await self.active.count_type(_type)}```"
-
-        await ctx.channel.send(response)
-
-    @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def registry(
-        self,
-        ctx: commands.Context,
-        user: Optional[discord.Member],
-        _type: Optional[PunishmentConverter],
-    ) -> None:
-        response: str
-        if _type is None and user is None:
-            response = (
-                f"```Total amount of records in PunishmentsRegistry"
-                f" is {await self.registry.count_total_amount()}```"
-            )
-        elif _type is None:
-            response = (
-                f"```Total amount of records in PunishmentsRegistry"
-                f" for user {user.display_name} is {await self.registry.count_by_user(user.id)}```"
-            )
-        elif user is None:
-            response = (
-                f"```Total amount of records in PunishmentRegistry of type {_type.value}"
-                f" is {await self.registry.count_type(_type)}```"
-            )
-        else:
-            response = (
-                f"```Total amount of records in PunishmentRegistry for user {user.display_name} of type {_type.value}"
-                f" is {await self.registry.count_type_by_user(user.id, _type)}```"
+    async def punishment(self, ctx: Context) -> None:
+        if ctx.invoked_subcommand is None:
+            await ctx.channel.send(
+                "```Options: /punishment info, /punishment active, /punishment registry``"
             )
 
-        await ctx.channel.send(response)
-
-    @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*ACCESS_LEVEL_2)
-    async def info(self, ctx: commands.Context, registry_id: str) -> None:
+    @punishment.command(cls=CommandWithDocs)
+    async def info(self, ctx: Context, registry_id: str) -> None:
         try:
             record = await self.registry.get_info(registry_id)
-        except bson.errors.InvalidId as e:
-            await ctx.channel.send(f"```dts\n# {str(e)}\n```")
+        except bson.errors.InvalidId:
+            await ctx.channel.send(f"```dts\n# Invalid Punishment ID\n```")
         else:
             if record is None:
-                await ctx.channel.send(f"```dts\n# This document\n```")
+                await ctx.channel.send(f"```dts\n# This document doesn't exist\n```")
+            else:
+                embed_string = "\n".join(
+                    [f"**{k}** : {v}" for k, v in record.items() if k != "_id"]
+                )
+                embed = discord.Embed(
+                    title=f"Punishment id {registry_id}",
+                    description=embed_string,
+                    colour=discord.Color.red(),
+                )
+                await ctx.channel.send(embed=embed)
 
-                return
+    @punishment.group()
+    async def active(self, ctx: Context) -> None:
+        if ctx.invoked_subcommand is None:
+            amount = await self.active.count_total_amount()
+            await ctx.channel.send(f"```\nTotal amount of punishments is {amount}\n```")
 
-            embed_string = "\n".join(
-                [f"**{k}** : {v}" for k, v in record.items() if k != "_id"]
-            )
-            embed = discord.Embed(
-                title=f"Punishment id {registry_id}",
-                description=embed_string,
-                colour=discord.Color.red(),
-            )
-            await ctx.channel.send(embed=embed)
+    @active.command()
+    async def type(self, ctx: Context):
+        amounts = await self.active.count_all_types()
+        await ctx.send(embed=self.database_info.active(amounts))
+
+    @punishment.group()
+    async def registry(self, ctx: Context) -> None:
+        if ctx.invoked_subcommand is None:
+            amount = await self.registry.count_total_amount()
+            await ctx.channel.send(f"```\nTotal amount of punishments is {amount}\n```")
+
+    @registry.command()
+    async def user(self, ctx: Context, user: Member):
+        amounts = await self.registry.count_all_by_user(user.id)
+        await ctx.send(embed=self.database_info.registry_per_member(amounts, user))
+
+    @registry.command(aliases=("type", "types"))
+    async def _type(self, ctx: Context):
+        amounts = await self.registry.count_all_type()
+        await ctx.send(embed=self.database_info.registry(amounts))

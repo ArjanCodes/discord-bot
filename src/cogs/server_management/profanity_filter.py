@@ -62,8 +62,8 @@ class ProfanityReport(menus.Menu):
         self.dm_channel = dm_channel
         self.triggered_words = triggered_words
 
+        self.result: bool = False
         self.author_avatar_url = None
-        self.result = False
 
     async def send_initial_message(
         self, ctx: Context, channel: discord.DMChannel
@@ -270,7 +270,9 @@ class ProfanityFilter(commands.Cog):
     @commands.has_any_role(*ACCESS_LEVEL_2)
     async def profanity(self, ctx: Context) -> None:
         if ctx.invoked_subcommand is None:
-            await ctx.channel.send("```Options: /profanity add, /profanity remove, /profanity count``")
+            await ctx.channel.send(
+                "```Options: /profanity add, /profanity remove, /profanity count``"
+            )
 
     @profanity.command()
     async def add(self, ctx: Context, *, words: str) -> None:
