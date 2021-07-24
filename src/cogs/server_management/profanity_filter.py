@@ -1,7 +1,7 @@
 from src import menus
 
 from src.single_guild_bot import SingleGuildBot as Bot
-from .management_core import PRIVILEGED_USERS
+from src.cogs.access_levels import *
 
 import discord
 from discord import Message
@@ -267,10 +267,10 @@ class ProfanityFilter(commands.Cog):
             await self.record_report(message.content)
 
     @commands.group()
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def profanity(self, ctx: Context) -> None:
         if ctx.invoked_subcommand is None:
-            await ctx.channel.send("```Pass in a subcommand```")
+            await ctx.channel.send("```Options: /profanity add, /profanity remove, /profanity count``")
 
     @profanity.command()
     async def add(self, ctx: Context, *, words: str) -> None:

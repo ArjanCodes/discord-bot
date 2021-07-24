@@ -8,7 +8,7 @@ from discord.ext import commands, tasks
 import discord.errors
 from src.custom_help_command import CommandWithDocs
 
-import config
+from src.cogs.access_levels import *
 
 from .punishments import *
 
@@ -17,12 +17,6 @@ import bson
 
 
 UNPUNISH_LOOP_DURATION_MINUTES = 1
-
-PRIVILEGED_USERS = [
-    config.ADMINISTRATOR_ROLE_ID,
-    config.MODERATOR_ROLE_ID,
-    config.BOT_MASTER_ROLE_ID,
-]
 
 
 class PunishmentConverter(commands.Converter):
@@ -72,7 +66,7 @@ class ServerManagement(commands.Cog):
 
     @property
     async def muted_role(self) -> discord.Role:
-        return (await self.bot.the_guild).get_role(config.MUTED_ROLE_ID)
+        return (await self.bot.the_guild).get_role(Roles.MUTED.value)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -80,7 +74,7 @@ class ServerManagement(commands.Cog):
             await member.add_roles(await self.muted_role)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def warn(
         self, ctx: commands.Context, user: Member, *, warn: Optional[WarnPunishment]
     ):
@@ -93,7 +87,7 @@ class ServerManagement(commands.Cog):
         await warn.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def mute(
         self, ctx: commands.Context, user: Member, *, mute: Optional[MutePunishment]
     ):
@@ -106,7 +100,7 @@ class ServerManagement(commands.Cog):
         await mute.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def kick(
         self, ctx: commands.Context, user: Member, *, kick: Optional[KickPunishment]
     ):
@@ -119,7 +113,7 @@ class ServerManagement(commands.Cog):
         await kick.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def ban(
         self, ctx: commands.Context, user: Member, *, ban: Optional[BanPunishment]
     ):
@@ -132,7 +126,7 @@ class ServerManagement(commands.Cog):
         await ban.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def permaban(
         self, ctx: commands.Context, user: Member, *, ban: Optional[PermaBanPunishment]
     ):
@@ -145,7 +139,7 @@ class ServerManagement(commands.Cog):
         await ban.punish(ctx)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def active(
         self, ctx: commands.Context, _type: Optional[PunishmentConverter]
     ) -> None:
@@ -157,7 +151,7 @@ class ServerManagement(commands.Cog):
         await ctx.channel.send(response)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def registry(
         self,
         ctx: commands.Context,
@@ -189,7 +183,7 @@ class ServerManagement(commands.Cog):
         await ctx.channel.send(response)
 
     @commands.command(cls=CommandWithDocs)
-    @commands.has_any_role(*PRIVILEGED_USERS)
+    @commands.has_any_role(*ACCESS_LEVEL_2)
     async def info(self, ctx: commands.Context, registry_id: str) -> None:
         try:
             record = await self.registry.get_info(registry_id)

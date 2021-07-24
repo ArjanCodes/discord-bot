@@ -1,6 +1,6 @@
 import discord
 
-import config as env
+from config import GUILD_ID, TOKEN, DB_CONNECTION_STRING, Channels
 
 from src.custom_help_command import CustomHelpCommand, CommandWithDocs
 from src.single_guild_bot import SingleGuildBot
@@ -24,7 +24,7 @@ class Bot(SingleGuildBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        _client = motor.AsyncIOMotorClient(env.DB_CONNECTION_STRING)
+        _client = motor.AsyncIOMotorClient(DB_CONNECTION_STRING)
 
         self._db = motor.AsyncIOMotorDatabase(_client, "bot")
 
@@ -45,13 +45,13 @@ class Bot(SingleGuildBot):
 
     @property
     async def the_guild(self) -> discord.Guild:
-        return await self.fetch_guild(env.GUILD_ID)
+        return await self.fetch_guild(GUILD_ID)
 
     async def admin_log(
         self, message: str = None, embed: discord.Embed = None
     ) -> discord.Message:
         channel: discord.TextChannel = await self.fetch_channel(
-            env.ADMIN_LOG_CHANNEL_ID
+            Channels.ADMIN_LOG.value
         )
         return await channel.send(content=message, embed=embed)
 
@@ -78,4 +78,4 @@ bot = Bot(
     help_command=CustomHelpCommand(),
 )
 
-bot.run(env.TOKEN)
+bot.run(TOKEN)

@@ -14,7 +14,7 @@ import discord
 from discord.ext import commands
 from discord.utils import get
 
-from config import MUTED_ROLE_ID
+from config import Roles
 
 DEFAULT_PUNISHMENT_UNIT = "minutes"
 DEFAULT_PUNISHMENT_AMOUNT = 5
@@ -212,7 +212,7 @@ class MutePunishment(TimedPunishment):
     @staticmethod
     async def get_muted_role(guild: discord.Guild) -> discord.Role:
         roles = await guild.fetch_roles()
-        return get(roles, id=MUTED_ROLE_ID)
+        return get(roles, id=Roles.MUTED.value)
 
 
 @dataclass(frozen=True)
