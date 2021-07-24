@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 
 import datetime
 import random
+from typing import Tuple
 
 import discord
 from discord.ext import commands
@@ -39,7 +40,7 @@ def get_random_reason() -> str:
     return random.choice(GENERIC_REASONS)
 
 
-def extract_amount_and_unit(argument) -> (int, str, str):
+def extract_amount_and_unit(argument) -> Tuple[int, str, str]:
     """A simple input parser to get amount, unit and reason from a command string"""
     argument = argument.split()
 
