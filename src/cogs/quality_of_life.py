@@ -23,7 +23,7 @@ class QoL(commands.Cog):
         members: Greedy[Member],
         channel: TextChannel,
         *,
-        message: Optional[str] = "Please, move your conversation here",
+        message: Optional[str] = "Please, move your conversation to the target channel",
     ) -> None:
         await ctx.message.delete()
 
