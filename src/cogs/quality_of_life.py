@@ -23,10 +23,17 @@ class QoL(commands.Cog):
         members: Greedy[Member],
         channel: TextChannel,
         *,
-        message: Optional[str] = "**Please, move your conversation here**"
+        message: Optional[str] = "Please, move your conversation here",
     ) -> None:
         await ctx.message.delete()
 
-        member_mentions = ",".join(member.mention for member in members)
+        users = f"**Users:** {','.join(member.mention for member in members)}"
+        target_channel = f"**Target channel:** {channel.mention}"
 
-        await channel.send(member_mentions + "\n" + message)
+        embed = discord.Embed(
+            title="Request to move discussion",
+            description=users + "\n" + target_channel + "\n" + message,
+            colour=discord.Colour.red(),
+        )
+
+        await ctx.channel.send(embed=embed)
