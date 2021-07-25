@@ -12,7 +12,7 @@ import src.collection_handlers as coll
 import json
 
 
-PREFIX = "/"
+PREFIX = "!"
 CASE_INSENSITIVE = True
 
 
@@ -36,6 +36,7 @@ class Bot(SingleGuildBot):
             ),
             cogs.Utilities(self),
             cogs.ProfanityFilter(self, coll.ProfanityListStorage(self._db)),
+            cogs.QoL(self),
         ]
         with open("src/cogs/command_docs.json") as file:
             data = json.load(file)
