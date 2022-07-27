@@ -20,7 +20,6 @@ class Channels(Enum):
     BOT_TESTING = int(os.environ.get("TEST_CHANNEL_ID"))
 
 
-@unique
 class Roles(Enum):
     ADMINISTRATOR = int(os.environ.get("ADMINISTRATOR_ROLE_ID"))
     MODERATOR = int(os.environ.get("MODERATOR_ROLE_ID"))
