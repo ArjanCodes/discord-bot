@@ -35,7 +35,6 @@ class Bot(SingleGuildBot):
                 coll.PunishmentRegistry(self._db),
             ),
             cogs.Utilities(self),
-            cogs.ProfanityFilter(self, coll.ProfanityListStorage(self._db)),
             cogs.QoL(self),
         ]
         with open("src/cogs/command_docs.json") as file:
