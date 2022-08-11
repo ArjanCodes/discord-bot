@@ -50,6 +50,11 @@ class Statistics(Cog):
         series = self.prepare_data(data)
         fig = generate_heatmap(series, cmap)
         await self.send_heatmap(fig, ctx)
+    
+    @commands.command()
+    async def cmap(self, ctx: Context) -> None:
+        result = "reference: https://matplotlib.org/stable/tutorials/colors/colormaps.html"
+        await ctx.send(result)
 
     @staticmethod
     def prepare_data(data) -> pd.Series:
