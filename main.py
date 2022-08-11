@@ -24,9 +24,11 @@ class Bot(SingleGuildBot):
         super().__init__(*args, **kwargs)
 
         _client = motor.AsyncIOMotorClient(DB_CONNECTION_STRING)
+        self._db = motor.AsyncIOMotorDatabase(_client, "statistics")
 
         _cogs = [
             cogs.Utilities(self),
+            cogs.Statistics(self, coll.UserStatCollectionHandler(self._db)),
         ]
 
         for cog in _cogs:
@@ -48,5 +50,4 @@ bot = Bot(
     case_insensitive=CASE_INSENSITIVE,
     intents=INTENTS,
 )
-
 bot.run(TOKEN)

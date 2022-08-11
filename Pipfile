@@ -9,6 +9,9 @@ discord = "*"
 pymongo = "*"
 dnspython = "*"
 motor = "*"
+pandas = "*"
+matplotlib = "*"
+numpy = "*"
 
 [dev-packages]
 
