@@ -32,7 +32,7 @@ class Statistics(Cog):
             await ctx.reply(file=File(buffer, filename=f"{ctx.author.id}_activity.png"))
 
     @commands.command()
-    async def get(self, ctx, user_id: int, cmap: Optional[str]) -> None:
+    async def user(self, ctx, user_id: int, cmap: Optional[str]) -> None:
         data = await self.collection.find_by_user(user_id)
         if not data:
             await ctx.send(f"No data for user `{user_id}` available")
