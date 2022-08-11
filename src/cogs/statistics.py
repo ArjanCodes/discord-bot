@@ -34,14 +34,20 @@ class Statistics(Cog):
     @commands.command()
     async def get(self, ctx, user_id: int, cmap: Optional[str]) -> None:
         data = await self.collection.find_by_user(user_id)
+        if not data:
+            await ctx.send(f"No data for user `{user_id}` available")
+            return
         series = self.prepare_data(data)
         fig = generate_heatmap(series, cmap)
         await self.send_heatmap(fig, ctx)
 
     @commands.command()
     async def channel(self, ctx, channel_id: int, cmap: Optional[str] = None):
-        val = await self.collection.find_by_channel(int(channel_id))
-        series = self.prepare_data(val)
+        data = await self.collection.find_by_channel(channel_id)
+        if not data:
+            await ctx.send(f"No data for channel `{channel_id}` available")
+            return
+        series = self.prepare_data(data)
         fig = generate_heatmap(series, cmap)
         await self.send_heatmap(fig, ctx)
 
