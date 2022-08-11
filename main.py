@@ -1,15 +1,12 @@
-import discord
-
-from config import GUILD_ID, TOKEN, DB_CONNECTION_STRING, Channels
-
-from src.single_guild_bot import SingleGuildBot
-import src.cogs as cogs
-
-import motor.motor_asyncio as motor
-import src.collection_handlers as coll
-
 import json
 
+import discord
+import motor.motor_asyncio as motor
+
+import src.cogs as cogs
+import src.collection_handlers as coll
+from config import DB_CONNECTION_STRING, GUILD_ID, TOKEN, Channels
+from src.single_guild_bot import SingleGuildBot
 
 PREFIX = "!"
 CASE_INSENSITIVE = True

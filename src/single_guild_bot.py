@@ -1,7 +1,7 @@
-from abc import abstractmethod, ABC
-from discord.ext.commands import Bot
+from abc import ABC, abstractmethod
 
 import discord
+from discord.ext.commands import Bot
 
 
 class SingleGuildBot(ABC, Bot):

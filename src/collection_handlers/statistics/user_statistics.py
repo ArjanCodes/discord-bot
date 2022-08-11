@@ -1,5 +1,6 @@
-from bson import datetime
 import motor.motor_asyncio as motor
+from bson import datetime
+
 
 def get_date() -> datetime.datetime:
     return datetime.datetime.now().replace(

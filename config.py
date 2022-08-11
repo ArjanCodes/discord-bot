@@ -1,7 +1,7 @@
 import os
+from enum import Enum, unique
 
 from dotenv import load_dotenv
-from enum import Enum, unique
 
 load_dotenv()
 
