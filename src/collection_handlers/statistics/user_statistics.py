@@ -35,7 +35,7 @@ class UserStatCollectionHandler(motor.AsyncIOMotorCollection):
     async def find_by_channel(self, channel_id: int):
         return await self.aggregate(
             [
-                {"$match": {"user_id": channel_id}},
+                {"$match": {"channel_id": channel_id}},
                 {
                     "$group": {
                         "_id": {"day": "$day", "channel_id": "$channel_id"},
