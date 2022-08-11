@@ -1,16 +1,17 @@
+from io import BytesIO
+import datetime
 from typing import Optional
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from discord import File
-from io import BytesIO
 
-from src.collection_handlers import UserStatCollectionHandler
+from discord import File
 from discord.ext.commands import Cog, Context
 from discord.ext import commands
 import discord
+from src.collection_handlers import UserStatCollectionHandler
 
 from src.heatmap import generate_heatmap
-import datetime
 
 from src.single_guild_bot import SingleGuildBot as Bot
 
@@ -36,7 +37,6 @@ class Statistics(Cog):
         series = self.prepare_data(data)
         fig = generate_heatmap(series, cmap)
         await self.send_heatmap(fig, ctx)
-
 
     @commands.command()
     async def channel(self, ctx, channel_id: int, cmap: Optional[str] = None):
