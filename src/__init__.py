@@ -1,2 +1,1 @@
-from . import cogs
-from . import collection_handlers
+from . import cogs, collection_handlers
