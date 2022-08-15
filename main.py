@@ -1,6 +1,6 @@
 import json
 
-import discord
+import disnake
 import motor.motor_asyncio as motor
 
 import src.cogs as cogs
@@ -12,7 +12,7 @@ PREFIX = "!"
 CASE_INSENSITIVE = True
 
 
-INTENTS = discord.Intents.default()
+INTENTS = disnake.Intents.default()
 INTENTS.members = True
 
 
@@ -32,13 +32,13 @@ class Bot(SingleGuildBot):
             self.add_cog(cog)
 
     @property
-    async def the_guild(self) -> discord.Guild:
+    async def the_guild(self) -> disnake.Guild:
         return await self.fetch_guild(GUILD_ID)
 
     async def on_ready(self):
         print("Bot is online")
         await self.change_presence(
-            activity=discord.Game(name="Being developed by the ArjanCodes community")
+            activity=disnake.Game(name="Being developed by the ArjanCodes community")
         )
 
 

@@ -5,13 +5,13 @@ name = "pypi"
 
 [packages]
 python-dotenv = "*"
-discord = "*"
 pymongo = "*"
 dnspython = "*"
 motor = "*"
 pandas = "*"
 matplotlib = "*"
 numpy = "*"
+disnake = "*"
 
 [dev-packages]
 
