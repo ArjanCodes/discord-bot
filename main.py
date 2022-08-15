@@ -14,6 +14,7 @@ CASE_INSENSITIVE = True
 
 INTENTS = disnake.Intents.default()
 INTENTS.members = True
+INTENTS.message_content = True
 
 
 class Bot(SingleGuildBot):
