@@ -1,5 +1,5 @@
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from ..single_guild_bot import SingleGuildBot as Bot
 
@@ -10,7 +10,7 @@ class Utilities(commands.Cog):
 
     @commands.command()
     async def code(self, ctx: commands.Context):
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Here is how to format Python code on Discord:",
             description="\`\`\`py\n"
             "print('Hello World!')"

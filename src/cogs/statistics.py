@@ -5,10 +5,10 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from discord import File
-from discord.ext.commands import Cog, Context
-from discord.ext import commands
-import discord
+from disnake import File
+from disnake.ext.commands import Cog, Context
+from disnake.ext import commands
+import disnake
 from src.collection_handlers import UserStatCollectionHandler
 
 from src.heatmap import generate_heatmap
@@ -22,7 +22,7 @@ class Statistics(Cog):
         self.collection = collection
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message) -> None:
+    async def on_message(self, message: disnake.Message) -> None:
         await self.collection.insert(message.channel.id, message.author.id)
 
     async def send_heatmap(self, fig: plt.Figure, ctx: Context) -> None:

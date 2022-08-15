@@ -1,9 +1,9 @@
 from typing import Optional
 
-import discord
-from discord import Member, TextChannel
-from discord.ext import commands
-from discord.ext.commands import Context, Greedy
+import disnake
+from disnake import Member, TextChannel
+from disnake.ext import commands
+from disnake.ext.commands import Context, Greedy
 
 from src.cogs.access_levels import ACCESS_LEVEL_2
 
@@ -29,10 +29,10 @@ class QoL(commands.Cog):
         users = f"**Users:** {','.join(member.mention for member in members)}"
         target_channel = f"**Target channel:** {channel.mention}"
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Request to move discussion",
             description=users + "\n" + target_channel + "\n" + message,
-            colour=discord.Colour.red(),
+            colour=disnake.Colour.red(),
         )
 
         await ctx.channel.send(embed=embed)
