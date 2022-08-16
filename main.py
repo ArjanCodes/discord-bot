@@ -47,5 +47,6 @@ bot = Bot(
     command_prefix=PREFIX,
     case_insensitive=CASE_INSENSITIVE,
     intents=INTENTS,
+    test_guilds=[805814717720559656],
 )
 bot.run(TOKEN)
