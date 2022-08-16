@@ -1,25 +1,37 @@
-from io import BytesIO
 import datetime
-from typing import Optional
+from io import BytesIO
+from typing import List, Optional
 
+import disnake
 import matplotlib.pyplot as plt
 import pandas as pd
-
 from disnake import File
-from disnake.ext.commands import Cog, Context
 from disnake.ext import commands
-import disnake
-from src.collection_handlers import UserStatCollectionHandler
+from disnake.ext.commands import Cog, CommandError, Context
 
+from src.collection_handlers import StatData, UserStatCollectionHandler
 from src.heatmap import generate_heatmap
-
 from src.single_guild_bot import SingleGuildBot as Bot
 
 
+CMAP = "ref: https://matplotlib.org/stable/tutorials/colors/colormaps.html"
+
+
 class Statistics(Cog):
-    def __init__(self, bot: Bot, collection: UserStatCollectionHandler) -> None:
+    def __init__(
+        self,
+        bot: Bot,
+        collection: UserStatCollectionHandler,
+    ) -> None:
         self.bot = bot
         self.collection = collection
+
+    async def cog_command_error(
+        self,
+        ctx: Context,
+        error: CommandError,
+    ) -> None:
+        await ctx.send(str(error))
 
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message) -> None:
@@ -29,42 +41,56 @@ class Statistics(Cog):
         with BytesIO() as buffer:
             fig.savefig(buffer, format="png", bbox_inches="tight", dpi=400)
             buffer.seek(0)
-            await ctx.reply(file=File(buffer, filename=f"{ctx.author.id}_activity.png"))
+            await ctx.reply(file=File(buffer, f"{ctx.author.id}_activity.png"))
 
     @commands.command()
-    async def user(self, ctx, user_id: int, cmap: Optional[str]) -> None:
-        data = await self.collection.find_by_user(user_id)
+    async def user(
+        self,
+        ctx: Context,
+        user: disnake.User,
+        cmap: Optional[str],
+    ) -> None:
+        data = await self.collection.find_by_user(user.id)
         if not data:
-            await ctx.send(f"No data for user `{user_id}` available")
+            await ctx.send(f"No data for user `{user.id}` available")
             return
         series = self.prepare_data(data)
         fig = generate_heatmap(series, cmap)
         await self.send_heatmap(fig, ctx)
 
     @commands.command()
-    async def channel(self, ctx, channel_id: int, cmap: Optional[str] = None):
-        data = await self.collection.find_by_channel(channel_id)
+    async def channel(
+        self,
+        ctx: Context,
+        channel: disnake.TextChannel,
+        cmap: Optional[str] = None,
+    ) -> None:
+        data = await self.collection.find_by_channel(channel.id)
         if not data:
-            await ctx.send(f"No data for channel `{channel_id}` available")
+            await ctx.send(f"No data for channel `{channel.id}` available")
             return
         series = self.prepare_data(data)
         fig = generate_heatmap(series, cmap)
         await self.send_heatmap(fig, ctx)
-    
+
     @commands.command()
     async def cmap(self, ctx: Context) -> None:
-        result = "reference: https://matplotlib.org/stable/tutorials/colors/colormaps.html"
-        await ctx.send(result)
+        await ctx.send(CMAP)
 
     @staticmethod
-    def prepare_data(data) -> pd.Series:
+    def prepare_data(data: List[StatData]) -> pd.Series:
         # range is fixed to one year for now
-        end = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        end = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
         start = end - datetime.timedelta(days=365)
         parsed_data = {e["day"]: e["total"] for e in data}
 
-        data = pd.Series(parsed_data)
-        data.index = pd.DatetimeIndex(data.index)
+        series = pd.Series(parsed_data)
+        series.index = pd.DatetimeIndex(series.index)
 
         idx = pd.date_range(start, end)
-        return data.reindex(idx, fill_value=0)
+        return series.reindex(idx, fill_value=0)

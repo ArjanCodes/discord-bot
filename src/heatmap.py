@@ -73,7 +73,9 @@ def blank_out_last_days(
         heatmap[i, weeks - 1] = -1
 
 
-def stylized_axis(heatmap: np.ndarray, cmap, weeks: int, ticks: Dict[int, str]) -> plt.Axes:
+def stylized_axis(
+    heatmap: np.ndarray, cmap, weeks: int, ticks: Dict[int, str]
+) -> plt.Axes:
     y = np.arange(8) - 0.5
     x = np.arange(weeks + 1) - 0.5
 
@@ -119,7 +121,7 @@ def plot_heatmap(series: pd.Series, cmap: Optional[str]) -> plt.Axes:
     return stylized_axis(heatmap, cmap_obj, weeks, ticks)
 
 
-def create_colorbar(mmax,  mmin) -> None:
+def create_colorbar(mmax, mmin) -> None:
     plt.colorbar(ticks=np.linspace(mmin, mmax, 5, dtype=int), pad=0.02)
 
 

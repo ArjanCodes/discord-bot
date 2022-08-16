@@ -1,1 +1,1 @@
-from .statistics.user_statistics import UserStatCollectionHandler
+from .statistics.user_statistics import StatData, UserStatCollectionHandler
