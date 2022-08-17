@@ -5,7 +5,7 @@ import motor.motor_asyncio as motor
 
 import src.cogs as cogs
 import src.collection_handlers as coll
-from config import DB_CONNECTION_STRING, GUILD_ID, TOKEN, Channels
+from config import DB_CONNECTION_STRING, GUILD_ID, TOKEN
 from src.single_guild_bot import SingleGuildBot
 
 PREFIX = "!"
@@ -47,6 +47,6 @@ bot = Bot(
     command_prefix=PREFIX,
     case_insensitive=CASE_INSENSITIVE,
     intents=INTENTS,
-    test_guilds=[805814717720559656, 820628246965780520],
+    test_guilds=[GUILD_ID],
 )
 bot.run(TOKEN)
