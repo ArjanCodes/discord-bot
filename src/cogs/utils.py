@@ -17,7 +17,7 @@ class Utilities(commands.Cog):
             "\n\`\`\`\n"
             "```py\nprint('Hello World!')\n```",
         )
-        embed.set_author(icon_url=self.bot.user.avatar_url, name="ArjanBot")
+        embed.set_author(icon_url=self.bot.user.avatar.url, name="ArjanBot")
         embed.set_footer(text="These are backticks, not single quotes!")
 
         await ctx.send(embed=embed)
